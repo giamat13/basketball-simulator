@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏀 כדורסל - אקשן מהיר</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            color: #fff;
+        }
+
+        body.game-active {
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100vw;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-container.active {
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .top-hud {
+            background: rgba(0,0,0,0.7);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .score-display {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .team-score {
+            text-align: center;
+        }
+
+        .team-name {
+            font-size: 1em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .score {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .timer {
+            font-size: 2em;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            border-radius: 8px;
+        }
+
+        #gameCanvas {
+            flex: 1;
+            background: #d4893f;
+            cursor: none;
+            min-height: 400px;
+            display: none;
+        }
+
+        #gameCanvas.active {
+            display: block;
+        }
+
+        .controls-help {
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            display: none;
+            justify-content: center;
+            gap: 30px;
+            font-size: 0.9em;
+            flex-wrap: wrap;
+        }
+
+        .controls-help.active {
+            display: flex;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .key {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .menu-content {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: auto;
+        }
+
+        @media (max-width: 600px) {
+            .menu-content {
+                padding: 20px;
+            }
+            
+            .menu-content h1 {
+                font-size: 2em !important;
+            }
+            
+            .menu-content h2 {
+                font-size: 1.4em !important;
+            }
+        }
+
+        .menu-content h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        .menu-content h2 {
+            font-size: 1.8em;
+            margin: 30px 0 20px 0;
+        }
+
+        .country-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 600px) {
+            .country-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .country-btn {
+            background: rgba(255,255,255,0.2);
+            border: 3px solid transparent;
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .country-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: #ffd700;
+            transform: scale(1.05);
+        }
+
+        .country-btn.selected {
+            border-color: #00ff00;
+            background: rgba(0,255,0,0.3);
+        }
+
+        .difficulty-badge {
+            display: block;
+            font-size: 0.8em;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin: 10px;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .upgrades-panel {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .upgrade-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .upgrade-info {
+            text-align: right;
+        }
+
+        .upgrade-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .upgrade-level {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .power-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 30px;
+            background: rgba(0,0,0,0.5);
+            border: 3px solid #fff;
+            border-radius: 15px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .power-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00 0%, #ffff00 50%, #ff0000 100%);
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .crosshair {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            display: none;
+            animation: pulse 1s infinite;
+        }
+
+        .crosshair::before,
+        .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255,255,255,0.8);
+        }
+
+        .crosshair::before {
+            width: 20px;
+            height: 3px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .crosshair::after {
+            width: 3px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .steal-zone {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border: 3px dashed rgba(255,0,0,0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            display: none;
+            animation: rotate 2s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.5em;
+            font-weight: bold;
+            display: none;
+            z-index: 200;
+            animation: popIn 0.3s ease;
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="top-hud">
+            <div class="score-display">
+                <div class="team-score">
+                    <div class="team-name" id="playerTeam">🇮🇱 ישראל</div>
+                    <div class="score" id="playerScore">0</div>
+                </div>
+                <div class="timer" id="timer">4:00</div>
+                <div class="team-score">
+                    <div class="team-name" id="opponentTeam">יריב</div>
+                    <div class="score" id="opponentScore">0</div>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat-item">💰 <span id="money">1000</span></div>
+                <div class="stat-item">🏆 <span id="wins">0</span></div>
+                <div class="stat-item">⭐ רמה <span id="level">1</span></div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="controls-help">
+            <div class="control-item">
+                <span class="key">WASD</span>
+                <span>תנועה</span>
+            </div>
+            <div class="control-item">
+                <span class="key">עכבר</span>
+                <span>כיוון</span>
+            </div>
+            <div class="control-item">
+                <span class="key">לחץ + החזק</span>
+                <span>זריקה</span>
+            </div>
+            <div class="control-item">
+                <span class="key">SHIFT</span>
+                <span>ריצה מהירה</span>
+            </div>
+            <div class="control-item">
+                <span class="key">SPACE</span>
+                <span>חטיפה</span>
+            </div>
+        </div>
+
+        <div class="power-bar" id="powerBar">
+            <div class="power-fill" id="powerFill"></div>
+        </div>
+
+        <div class="crosshair" id="crosshair"></div>
+        <div class="steal-zone" id="stealZone"></div>
+        <div class="notification" id="notification"></div>
+    </div>
+
+    <div class="menu-overlay" id="menuOverlay">
+        <div class="menu-content">
+            <h1>🏀 כדורסל - אקשן מהיר 🏀</h1>
+            
+            <h2>בחר יריב</h2>
+            <div class="country-grid" id="countryGrid"></div>
+
+            <div class="upgrades-panel">
+                <h2>שדרוגים</h2>
+                <div id="upgradesList"></div>
+            </div>
+
+            <button onclick="startGame()" id="startBtn">התחל משחק! 🎮</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight - 150;
+
+        // Game state
+        const game = {
+            active: false,
+            time: 240,
+            selectedOpponent: null,
+            money: 1000,
+            wins: 0,
+            level: 1,
+            playerScore: 0,
+            opponentScore: 0,
+            upgrades: {
+                speed: 0,
+                shooting: 0,
+                stamina: 0,
+                defense: 0,
+                accuracy: 0
+            }
+        };
+
+        // Countries - balanced difficulty
+        const countries = [
+            { name: '🇺🇸 ארה"ב', difficulty: 95, reward: 1000 },
+            { name: '🇪🇸 ספרד', difficulty: 88, reward: 850 },
+            { name: '🇫🇷 צרפת', difficulty: 85, reward: 820 },
+            { name: '🇦🇺 אוסטרליה', difficulty: 83, reward: 800 },
+            { name: '🇩🇪 גרמניה', difficulty: 80, reward: 750 },
+            { name: '🇦🇷 ארגנטינה', difficulty: 82, reward: 780 },
+            { name: '🇷🇸 סרביה', difficulty: 84, reward: 800 },
+            { name: '🇬🇷 יוון', difficulty: 78, reward: 720 },
+            { name: '🇮🇹 איטליה', difficulty: 75, reward: 680 }
+        ];
+
+        // Upgrades
+        const upgrades = [
+            { id: 'speed', name: '⚡ מהירות', cost: 500, max: 10 },
+            { id: 'shooting', name: '🎯 כוח זריקה', cost: 600, max: 10 },
+            { id: 'accuracy', name: '🎪 דיוק', cost: 550, max: 10 },
+            { id: 'stamina', name: '💪 סטמינה', cost: 700, max: 10 },
+            { id: 'defense', name: '🛡️ חטיפה', cost: 650, max: 10 }
+        ];
+
+        // Player
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height * 0.7,
+            radius: 15,
+            speed: 4,
+            hasBall: true,
+            angle: 0
+        };
+
+        // Opponent
+        const opponent = {
+            x: canvas.width / 2,
+            y: canvas.height * 0.3,
+            radius: 15,
+            hasBall: false,
+            targetX: canvas.width / 2,
+            targetY: canvas.height * 0.3
+        };
+
+        // Ball
+        const ball = {
+            x: 0,
+            y: 0,
+            radius: 8,
+            vx: 0,
+            vy: 0,
+            inAir: false,
+            owner: 'player'
+        };
+
+        // Baskets
+        const baskets = {
+            player: { x: canvas.width / 2, y: canvas.height - 50, radius: 30 },
+            opponent: { x: canvas.width / 2, y: 50, radius: 30 }
+        };
+
+        function resizeCanvas() {
+            const topHudHeight = document.querySelector('.top-hud') ? document.querySelector('.top-hud').offsetHeight : 80;
+            const controlsHeight = document.querySelector('.controls-help') ? document.querySelector('.controls-help').offsetHeight : 50;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - topHudHeight - controlsHeight;
+            
+            baskets.player.x = canvas.width / 2;
+            baskets.player.y = canvas.height - 50;
+            baskets.opponent.x = canvas.width / 2;
+            baskets.opponent.y = 50;
+            
+            if (player.x === 0 && player.y === 0) {
+                player.x = canvas.width / 2;
+                player.y = canvas.height * 0.7;
+            }
+            if (opponent.x === 0 && opponent.y === 0) {
+                opponent.x = canvas.width / 2;
+                opponent.y = canvas.height * 0.3;
+            }
+        }
+
+        // Input
+        const keys = {};
+        let mouseX = 0;
+        let mouseY = 0;
+        let mouseDown = false;
+        let shootPower = 0;
+        let charging = false;
+
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            keys[key] = true;
+            
+            if (key === ' ' && game.active) {
+                e.preventDefault();
+                attemptSteal();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            keys[key] = false;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            
+            if (game.active) {
+                document.getElementById('crosshair').style.display = 'block';
+                document.getElementById('crosshair').style.left = e.clientX - 20 + 'px';
+                document.getElementById('crosshair').style.top = e.clientY - 20 + 'px';
+            }
+        });
+
+        canvas.addEventListener('mousedown', () => {
+            if (game.active && player.hasBall) {
+                mouseDown = true;
+                charging = true;
+                shootPower = 0;
+                document.getElementById('powerBar').style.display = 'block';
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (game.active && charging) {
+                shoot();
+                mouseDown = false;
+                charging = false;
+                document.getElementById('powerBar').style.display = 'none';
+            }
+        });
+
+        function initMenu() {
+            const grid = document.getElementById('countryGrid');
+            grid.innerHTML = countries.map((c, i) => `
+                <button class="country-btn" onclick="selectCountry(${i})">
+                    ${c.name}
+                    <span class="difficulty-badge">⭐${c.difficulty} | 💰${c.reward}</span>
+                </button>
+            `).join('');
+
+            renderUpgrades();
+        }
+
+        function selectCountry(index) {
+            game.selectedOpponent = countries[index];
+            document.querySelectorAll('.country-btn').forEach((btn, i) => {
+                btn.classList.toggle('selected', i === index);
+            });
+            document.getElementById('opponentTeam').textContent = game.selectedOpponent.name;
+        }
+
+        function renderUpgrades() {
+            const list = document.getElementById('upgradesList');
+            list.innerHTML = upgrades.map(u => {
+                const level = game.upgrades[u.id];
+                const cost = Math.floor(u.cost * Math.pow(1.4, level));
+                const canBuy = game.money >= cost && level < u.max;
+                return `
+                    <div class="upgrade-item">
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">${u.name}</div>
+                            <div class="upgrade-level">רמה ${level}/${u.max}</div>
+                        </div>
+                        <button onclick="buyUpgrade('${u.id}')" ${!canBuy ? 'disabled' : ''}>
+                            ${level >= u.max ? '✓' : `💰${cost}`}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function buyUpgrade(id) {
+            const upgrade = upgrades.find(u => u.id === id);
+            const level = game.upgrades[id];
+            const cost = Math.floor(upgrade.cost * Math.pow(1.4, level));
+            
+            if (game.money >= cost && level < upgrade.max) {
+                game.money -= cost;
+                game.upgrades[id]++;
+                updateDisplay();
+                renderUpgrades();
+            }
+        }
+
+        function startGame() {
+            if (!game.selectedOpponent) {
+                alert('בחר יריב תחילה!');
+                return;
+            }
+
+            game.active = true;
+            game.time = 240;
+            game.playerScore = 0;
+            game.opponentScore = 0;
+
+            player.x = canvas.width / 2;
+            player.y = canvas.height * 0.7;
+            player.hasBall = true;
+            
+            opponent.x = canvas.width / 2;
+            opponent.y = canvas.height * 0.3;
+            opponent.hasBall = false;
+
+            document.getElementById('menuOverlay').classList.add('hidden');
+            document.getElementById('gameCanvas').classList.add('active');
+            document.querySelector('.controls-help').classList.add('active');
+            document.querySelector('.game-container').classList.add('active');
+            document.body.classList.add('game-active');
+            
+            resizeCanvas();
+            gameLoop();
+            startTimer();
+        }
+
+        function gameLoop() {
+            if (!game.active) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawCourt();
+            updatePlayer();
+            updateBall();
+            updateOpponent();
+            drawBaskets();
+            drawOpponent();
+            drawPlayer();
+            if (ball.inAir) drawBall();
+
+            // Show steal zone when near opponent
+            const dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
+            if (dist < 80 && opponent.hasBall && !ball.inAir) {
+                const stealZone = document.getElementById('stealZone');
+                const rect = canvas.getBoundingClientRect();
+                stealZone.style.display = 'block';
+                stealZone.style.left = (rect.left + opponent.x) + 'px';
+                stealZone.style.top = (rect.top + opponent.y) + 'px';
+            } else {
+                document.getElementById('stealZone').style.display = 'none';
+            }
+
+            if (charging && shootPower < 100) {
+                shootPower += 2;
+                document.getElementById('powerFill').style.width = shootPower + '%';
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function drawCourt() {
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 3;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, 80, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(255,200,0,0.5)';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.arc(baskets.opponent.x, baskets.opponent.y, 250, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(baskets.player.x, baskets.player.y, 250, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(canvas.width / 2 - 80, baskets.opponent.y - 10, 160, 100);
+            ctx.strokeRect(canvas.width / 2 - 80, baskets.player.y - 90, 160, 100);
+        }
+
+        function updatePlayer() {
+            // Balanced speed with upgrades
+            const baseSpeed = 4 + game.upgrades.speed * 0.6;
+            const speed = keys['shift'] ? baseSpeed * 1.35 : baseSpeed;
+
+            // Check all movement keys
+            if (keys['w']) player.y -= speed;
+            if (keys['s']) player.y += speed;
+            if (keys['a']) player.x -= speed;
+            if (keys['d']) player.x += speed;
+            
+            // Also support arrow keys
+            if (keys['arrowup']) player.y -= speed;
+            if (keys['arrowdown']) player.y += speed;
+            if (keys['arrowleft']) player.x -= speed;
+            if (keys['arrowright']) player.x += speed;
+
+            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+
+            player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+        }
+
+        function attemptSteal() {
+            const dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
+            
+            if (dist < 80 && opponent.hasBall && !ball.inAir) {
+                // Balanced steal chance
+                const stealChance = 0.40 + game.upgrades.defense * 0.07;
+                
+                if (Math.random() < stealChance) {
+                    opponent.hasBall = false;
+                    player.hasBall = true;
+                    ball.owner = 'player';
+                    showNotification('🏀 חטיפה!');
+                } else {
+                    showNotification('❌ החטיא!');
+                }
+            }
+        }
+
+        function showNotification(text) {
+            const notif = document.getElementById('notification');
+            notif.textContent = text;
+            notif.style.display = 'block';
+            setTimeout(() => {
+                notif.style.display = 'none';
+            }, 700);
+        }
+
+        function updateOpponent() {
+            if (!game.active) return;
+
+            const difficulty = game.selectedOpponent.difficulty / 100;
+            // Balanced opponent speed - slightly slower than before
+            const baseSpeed = 3.5 * difficulty;
+            const speed = baseSpeed;
+
+            // Opponent tries to steal - balanced chance
+            if (!opponent.hasBall && player.hasBall && !ball.inAir) {
+                const dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
+                if (dist < 80) {
+                    // Lower steal chance for opponent to balance gameplay
+                    const stealChance = 0.012 * difficulty;
+                    if (Math.random() < stealChance) {
+                        player.hasBall = false;
+                        opponent.hasBall = true;
+                        ball.owner = 'opponent';
+                        showNotification('⚠️ היריב חטף!');
+                    }
+                }
+            }
+
+            if (opponent.hasBall) {
+                const targetDist = Math.hypot(
+                    baskets.player.x - opponent.x,
+                    baskets.player.y - opponent.y
+                );
+
+                if (targetDist > 180) {
+                    const angle = Math.atan2(baskets.player.y - opponent.y, baskets.player.x - opponent.x);
+                    opponent.x += Math.cos(angle) * speed;
+                    opponent.y += Math.sin(angle) * speed;
+                } else {
+                    // Shoot less frequently for balance
+                    if (Math.random() < 0.015 * difficulty) {
+                        opponentShoot();
+                    }
+                }
+            } else if (!player.hasBall && !ball.inAir) {
+                const angle = Math.atan2(ball.y - opponent.y, ball.x - opponent.x);
+                opponent.x += Math.cos(angle) * speed;
+                opponent.y += Math.sin(angle) * speed;
+
+                const dist = Math.hypot(ball.x - opponent.x, ball.y - opponent.y);
+                if (dist < opponent.radius + ball.radius) {
+                    opponent.hasBall = true;
+                    ball.owner = 'opponent';
+                }
+            } else {
+                const dist = Math.hypot(player.x - opponent.x, player.y - opponent.y);
+                if (dist > 60) {
+                    const angle = Math.atan2(player.y - opponent.y, player.x - opponent.x);
+                    opponent.x += Math.cos(angle) * speed * 0.7;
+                    opponent.y += Math.sin(angle) * speed * 0.7;
+                }
+            }
+
+            opponent.x = Math.max(opponent.radius, Math.min(canvas.width - opponent.radius, opponent.x));
+            opponent.y = Math.max(opponent.radius, Math.min(canvas.height - opponent.radius, opponent.y));
+        }
+
+        function opponentShoot() {
+            const difficulty = game.selectedOpponent.difficulty / 100;
+            const distance = Math.hypot(
+                baskets.player.x - opponent.x,
+                baskets.player.y - opponent.y
+            );
+
+            const angle = Math.atan2(baskets.player.y - opponent.y, baskets.player.x - opponent.x);
+            // Slightly less power for balance
+            const power = Math.min(distance / 3.5, 18) * difficulty;
+
+            ball.x = opponent.x;
+            ball.y = opponent.y;
+            ball.vx = Math.cos(angle) * power;
+            ball.vy = Math.sin(angle) * power;
+            ball.inAir = true;
+            opponent.hasBall = false;
+        }
+
+        function shoot() {
+            if (!player.hasBall) return;
+
+            const angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+            const power = (shootPower / 100) * (14 + game.upgrades.shooting * 1.8);
+
+            ball.x = player.x;
+            ball.y = player.y;
+            ball.vx = Math.cos(angle) * power;
+            ball.vy = Math.sin(angle) * power;
+            ball.inAir = true;
+            player.hasBall = false;
+
+            shootPower = 0;
+        }
+
+        function updateBall() {
+            if (!ball.inAir) {
+                if (player.hasBall) {
+                    ball.x = player.x;
+                    ball.y = player.y;
+                } else if (opponent.hasBall) {
+                    ball.x = opponent.x;
+                    ball.y = opponent.y;
+                }
+                return;
+            }
+
+            // Ball moves in straight line - no gravity (top-down view)
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+            
+            // Slow down over time (air resistance / friction)
+            ball.vx *= 0.98;
+            ball.vy *= 0.98;
+
+            checkBasket(baskets.opponent, 'player');
+            checkBasket(baskets.player, 'opponent');
+
+            // Ball stops if too slow
+            if (Math.abs(ball.vx) < 0.1 && Math.abs(ball.vy) < 0.1) {
+                ball.inAir = false;
+                ball.vx = 0;
+                ball.vy = 0;
+            }
+
+            // Out of bounds
+            if (ball.x < 0 || ball.x > canvas.width || ball.y < 0 || ball.y > canvas.height) {
+                ball.inAir = false;
+                if (ball.owner === 'player') {
+                    player.hasBall = true;
+                } else {
+                    opponent.hasBall = true;
+                }
+            }
+        }
+
+        function checkBasket(basket, scorer) {
+            const dist = Math.hypot(ball.x - basket.x, ball.y - basket.y);
+            
+            // Ball goes into basket if it's close enough and moving
+            if (dist < basket.radius && ball.inAir) {
+                let shootingDistance;
+                if (scorer === 'player') {
+                    shootingDistance = Math.hypot(
+                        player.x - basket.x,
+                        player.y - basket.y
+                    );
+                } else {
+                    shootingDistance = Math.hypot(
+                        opponent.x - basket.x,
+                        opponent.y - basket.y
+                    );
+                }
+                
+                const points = shootingDistance > 250 ? 3 : 2;
+                
+                if (scorer === 'player') {
+                    game.playerScore += points;
+                    showNotification(`+${points} נקודות! 🎉`);
+                } else {
+                    game.opponentScore += points;
+                }
+                
+                updateDisplay();
+                ball.inAir = false;
+                ball.vx = 0;
+                ball.vy = 0;
+                
+                if (scorer === 'player') {
+                    opponent.hasBall = true;
+                    ball.owner = 'opponent';
+                    opponent.x = canvas.width / 2;
+                    opponent.y = canvas.height * 0.3;
+                } else {
+                    player.hasBall = true;
+                    ball.owner = 'player';
+                    player.x = canvas.width / 2;
+                    player.y = canvas.height * 0.7;
+                }
+            }
+        }
+
+        function drawPlayer() {
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(player.x, player.y);
+            ctx.lineTo(
+                player.x + Math.cos(player.angle) * 25,
+                player.y + Math.sin(player.angle) * 25
+            );
+            ctx.stroke();
+
+            if (player.hasBall && !ball.inAir) {
+                ctx.fillStyle = '#FF6B35';
+                ctx.beginPath();
+                ctx.arc(player.x + 10, player.y - 10, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                const dist = Math.hypot(baskets.opponent.x - player.x, baskets.opponent.y - player.y);
+                const points = dist > 250 ? 3 : 2;
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${points} נק'`, player.x, player.y - 30);
+            }
+        }
+
+        function drawOpponent() {
+            ctx.fillStyle = '#f44336';
+            ctx.beginPath();
+            ctx.arc(opponent.x, opponent.y, opponent.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            if (opponent.hasBall && !ball.inAir) {
+                ctx.fillStyle = '#FF6B35';
+                ctx.beginPath();
+                ctx.arc(opponent.x + 10, opponent.y - 10, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+        function drawBall() {
+            ctx.fillStyle = '#FF6B35';
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawBaskets() {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(baskets.opponent.x, baskets.opponent.y, baskets.opponent.radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,0,0,0.2)';
+            ctx.fill();
+
+            ctx.strokeStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(baskets.player.x, baskets.player.y, baskets.player.radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(0,255,0,0.2)';
+            ctx.fill();
+        }
+
+        function startTimer() {
+            const interval = setInterval(() => {
+                if (!game.active) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                game.time--;
+                const min = Math.floor(game.time / 60);
+                const sec = game.time % 60;
+                document.getElementById('timer').textContent = 
+                    `${min}:${sec.toString().padStart(2, '0')}`;
+
+                if (game.time <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            game.active = false;
+            document.getElementById('crosshair').style.display = 'none';
+            document.getElementById('powerBar').style.display = 'none';
+            document.getElementById('stealZone').style.display = 'none';
+            document.getElementById('gameCanvas').classList.remove('active');
+            document.querySelector('.controls-help').classList.remove('active');
+            document.querySelector('.game-container').classList.remove('active');
+            document.body.classList.remove('game-active');
+
+            const won = game.playerScore > game.opponentScore;
+            
+            if (won) {
+                game.wins++;
+                game.money += game.selectedOpponent.reward;
+                alert(`🎉 ניצחון! +${game.selectedOpponent.reward} מטבעות!\nתוצאה: ${game.playerScore}-${game.opponentScore}`);
+                
+                if (game.wins % 3 === 0) {
+                    game.level++;
+                }
+            } else {
+                alert(`😢 הפסדת...\nתוצאה: ${game.playerScore}-${game.opponentScore}\nנסה שוב!`);
+            }
+
+            updateDisplay();
+            renderUpgrades();
+            document.getElementById('menuOverlay').classList.remove('hidden');
+        }
+
+        function updateDisplay() {
+            document.getElementById('money').textContent = game.money;
+            document.getElementById('wins').textContent = game.wins;
+            document.getElementById('level').textContent = game.level;
+            document.getElementById('playerScore').textContent = game.playerScore;
+            document.getElementById('opponentScore').textContent = game.opponentScore;
+        }
+
+        initMenu();
+        updateDisplay();
+        
+        setTimeout(() => {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        }, 100);
+    </script>
+</body>
+</html>
